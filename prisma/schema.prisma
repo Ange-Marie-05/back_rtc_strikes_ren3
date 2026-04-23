@@ -1,0 +1,135 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+  binaryTargets = ["native", "debian-openssl-3.0.x"]
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id                      String    @id       @default(uuid())
+  username                String    @unique
+  email                   String    @unique
+  password                String
+  twoFactorSecret         String?
+  PasswordResetToken      String?
+  PasswordResetTokenExp   DateTime?
+
+  ownedServers Server[] @relation
+  serverMembers ServerMember[]
+  messages Message[]
+  reacts React[]
+  sentMessages     DirectMessage[] @relation("SentMessages")
+  receivedMessages DirectMessage[] @relation("ReceivedMessages")
+}
+
+model Server {
+  id String @id @default(uuid())
+  name String @unique
+  createdAt DateTime @default(now())
+
+  ownerId String
+  owner User @relation(fields: [ownerId], references: [id])
+  members ServerMember[]
+  channels Channel[]
+}
+
+enum Role {
+  Owner
+  Admin
+  Member
+}
+
+model ServerMember {
+  id String @id @default(uuid())
+  role Role
+  joinedAt DateTime @default(now())
+
+  userId String
+  serverId String
+  user User @relation(fields: [userId], references: [id])
+  server Server @relation(fields: [serverId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, serverId])
+
+  banned Boolean @default(false)
+  banEndDate DateTime?
+}
+
+model Channel {
+  id String @id @default(uuid())
+  name String
+  createdAt DateTime @default(now())
+
+  serverId String
+  server Server @relation(fields: [serverId], references: [id], onDelete: Cascade)
+  messages Message[]
+
+  @@unique([serverId, name]) // Contraintes unicité (un nom unique pour chaque channel)
+}
+
+model Message {
+  id String @id @default(uuid())
+  content String @db.Text
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  isEdited Boolean @default(false)
+  isGif Boolean @default(false)
+
+  userId String
+  channelId String
+  user User @relation(fields: [userId], references: [id])
+  channel Channel @relation(fields: [channelId], references: [id], onDelete: Cascade)
+  reacts React[]
+
+  @@index([userId])
+  @@index([channelId])
+}
+
+model DirectMessage {
+  id         String   @id @default(uuid())
+  content    String   @db.Text
+  createdAt  DateTime @default(now())
+  isGif      Boolean @default(false)
+  
+  senderId   String
+  receiverId String
+
+  sender     User     @relation("SentMessages", fields: [senderId], references: [id])
+  receiver   User     @relation("ReceivedMessages", fields: [receiverId], references: [id])
+  reacts     React[]
+
+  @@index([senderId])
+  @@index([receiverId])
+}
+
+model React {
+  id              String          @id @default(uuid())
+  emoji           String         
+  createdAt       DateTime        @default(now())
+
+  //clés étrangères
+  userId          String
+  messageId       String?
+  dmId            String?      
+
+  //juste pour les relations
+  //pour dire que userId pointe sur User.id
+  user            User            @relation(fields: [userId], references: [id])
+  message         Message?        @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  dm              DirectMessage?   @relation(fields: [dmId], references: [id], onDelete: Cascade)
+
+  @@unique([emoji, userId, messageId])  //contrainte d'unicité sur cet ensemble d'attributs
+  @@unique([emoji, userId, dmId])
+  @@index([messageId])
+  @@index([userId])
+  @@index([dmId])
+}

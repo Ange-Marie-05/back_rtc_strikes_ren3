@@ -1,0 +1,3 @@
+-- AlterTable
+ALTER TABLE "React" ALTER COLUMN "messageId" DROP NOT NULL,
+ALTER COLUMN "dmId" DROP NOT NULL;
