@@ -53,7 +53,7 @@ import app from "../../app.js";
 const VALID_PASSWORD = "BBbb##88";
 
 async function makeHashedPassword(password = VALID_PASSWORD) {
-  return bcrypt.hash(password, 14);
+  return bcrypt.hash(password, 10);
 }
 
 async function makeMockUser(overrides = {}) {
@@ -494,7 +494,7 @@ describe("POST /auth/signup", () => {
 
     expect(response.status).toBe(409);
     expect(response.body.success).toBe(false);
-    expect(response.body.message).toBe("Cet utilisateur existe déjà / This user already exists");
+    expect(response.body.message).toBe("Ce nom utilisateur existe déjà / This username already exists");
   });
 
   test("erreur de base de données", async () => {

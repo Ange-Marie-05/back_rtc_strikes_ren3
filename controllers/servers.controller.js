@@ -91,6 +91,11 @@ export async function createServer(req, res, next) {
 
         res.status(201).json(newServer);
     } catch (error) {
+        // name déjà existant
+        if (error.code === 'P2002') {
+          return next(createError('SERVER_EXISTS_ALREADY'));
+        }
+
         if (!error.type) {
             error.type = "DATABASE_ERROR";
         }
@@ -215,6 +220,23 @@ export async function updateMemberServerById(req, res, next) {
         }
 
         const updatedMember = await serversModel.updateMemberRole(userId, serverId, memberId, role);
+
+        const server = await serversModel.findServerById(serverId);
+
+        if (!server) {
+            throw createError("SERVER_NOT_FOUND");
+        }
+
+        const io = getIO();
+        if (io) {
+            io.emit(`server:${serverId}:member_role_changed`, {
+              userId: memberId,
+              role: updatedMember.role,
+              action: "role",
+              messageFr: `Votre rôle sur le serveur "${server.name}" a été mis à jour : vous êtes maintenant ${updatedMember.role === "Owner" ? "Propriétaire" : updatedMember.role === "Admin" ? "Administrateur" : "Membre"}.`,
+              messageEn: `Your role on the server "${server.name}" has been updated: you are now ${updatedMember.role === "Owner" ? "Owner" : updatedMember.role === "Admin" ? "Admin" : "Member"}.`,
+            });
+        }
 
         res.status(200).json({
             success: true,

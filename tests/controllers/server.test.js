@@ -366,6 +366,24 @@ describe("SERVERS ROUTES", () => {
       expect(createServerSpy).toHaveBeenCalledWith("Serveur Test", "user-1");
     });
 
+    test("nom serveur déjà existant", async () => {
+      const { agent } = await createAuthenticatedAgent();
+    
+      const error = new Error("Unique constraint failed");
+      error.code = "P2002";
+    
+      spyOn(serversModel, "createServerDB").mockRejectedValue(error);
+    
+      const response = await agent
+        .post("/servers")
+        .send({ name: "Serveur Test" });
+    
+      expect(response.status).toBe(409);
+      expect(response.body.message).toBe(
+        "Un serveur du même nom existe déjà / This server's name already exists"
+      );
+    });
+
     test("utilisateur non authentifié", async () => {
       const response = await request(app).post("/servers").send({ name: "Test" });
 
@@ -700,7 +718,7 @@ describe("SERVERS ROUTES", () => {
 
     test("mise à jour rôle réussie", async () => {
       const { agent } = await createAuthenticatedAgent();
-
+    
       const updateMemberRoleSpy = spyOn(
         serversModel,
         "updateMemberRole"
@@ -710,11 +728,16 @@ describe("SERVERS ROUTES", () => {
         serverId: "1",
         role: "Admin",
       });
-
+    
+      const findServerSpy = spyOn(serversModel, "findServerById").mockResolvedValue({
+        id: "1",
+        name: "Serveur Test",
+      });
+    
       const response = await agent
         .put("/servers/1/members/u2")
         .send({ role: "Admin" });
-
+    
       expect(response.status).toBe(200);
       expect(response.body.success).toBe(true);
       expect(response.body.message).toBe(
@@ -726,12 +749,28 @@ describe("SERVERS ROUTES", () => {
         serverId: "1",
         role: "Admin",
       });
-
+    
       expect(updateMemberRoleSpy).toHaveBeenCalledWith(
         "user-1",
         "1",
         "u2",
         "Admin"
+      );
+    
+      expect(findServerSpy).toHaveBeenCalledWith("1");
+    
+      expect(mockIOEmit).toHaveBeenCalledTimes(1);
+      expect(mockIOEmit).toHaveBeenCalledWith(
+        "server:1:member_role_changed",
+        {
+          userId: "u2",
+          role: "Admin",
+          action: "role",
+          messageFr:
+            'Votre rôle sur le serveur "Serveur Test" a été mis à jour : vous êtes maintenant Administrateur.',
+          messageEn:
+            'Your role on the server "Serveur Test" has been updated: you are now Admin.',
+        }
       );
     });
 
@@ -797,7 +836,7 @@ describe("SERVERS ROUTES", () => {
 
     test("transfert du rôle Owner", async () => {
       const { agent } = await createAuthenticatedAgent();
-
+    
       const updateMemberRoleSpy = spyOn(
         serversModel,
         "updateMemberRole"
@@ -807,11 +846,16 @@ describe("SERVERS ROUTES", () => {
         serverId: "1",
         role: "Owner",
       });
-
+    
+      const findServerSpy = spyOn(serversModel, "findServerById").mockResolvedValue({
+        id: "1",
+        name: "Serveur Test",
+      });
+    
       const response = await agent
         .put("/servers/1/members/u2")
         .send({ role: "Owner" });
-
+    
       expect(response.status).toBe(200);
       expect(response.body.success).toBe(true);
       expect(response.body.member).toEqual({
@@ -820,7 +864,7 @@ describe("SERVERS ROUTES", () => {
         serverId: "1",
         role: "Owner",
       });
-
+    
       expect(updateMemberRoleSpy).toHaveBeenCalledTimes(1);
       expect(updateMemberRoleSpy).toHaveBeenCalledWith(
         "user-1",
@@ -828,6 +872,20 @@ describe("SERVERS ROUTES", () => {
         "u2",
         "Owner"
       );
+    
+      expect(findServerSpy).toHaveBeenCalledTimes(1);
+      expect(findServerSpy).toHaveBeenCalledWith("1");
+    
+      expect(mockIOEmit).toHaveBeenCalledTimes(1);
+      expect(mockIOEmit).toHaveBeenCalledWith("server:1:member_role_changed", {
+        userId: "u2",
+        role: "Owner",
+        action: "role",
+        messageFr:
+          'Votre rôle sur le serveur "Serveur Test" a été mis à jour : vous êtes maintenant Propriétaire.',
+        messageEn:
+          'Your role on the server "Serveur Test" has been updated: you are now Owner.',
+      });
     });
   });
 

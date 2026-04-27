@@ -59,7 +59,7 @@ const ErrorCatalog = {
 
     USER_EXISTS_ALREADY: {
         code: 409,
-        message: "Cet utilisateur existe déjà / This user already exists"
+        message: "Ce nom utilisateur existe déjà / This username already exists"
     },
 
     USER_INVALID_TOKEN: {
@@ -146,6 +146,11 @@ const ErrorCatalog = {
     SERVER_NAME_EMPTY: {
         code: 400,
         message: 'Le champ du serveur ne doit pas être vide / Server name must not be empty'
+    },
+
+    SERVER_EXISTS_ALREADY: {
+        code: 409,
+        message: "Un serveur du même nom existe déjà / This server's name already exists"
     },
 
     SERVER_ALREADY_JOINED: {
