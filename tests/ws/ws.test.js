@@ -487,7 +487,7 @@ describe("handleChannelLeave", () => {
 // ========================================
 
 describe("handleUserConnected", () => {
-  test("émet presence:user_connected", async () => {
+  test("émet presence:user_connected avec l'userId du socket", async () => {
     const mockEmit = mock(() => {});
     const mockIo = { emit: mockEmit };
     const mockSocket = { userId: "user1" };
@@ -497,6 +497,16 @@ describe("handleUserConnected", () => {
     expect(mockEmit).toHaveBeenCalledWith("presence:user_connected", {
       userId: "user1",
     });
+  });
+
+  test("n'émet rien si userId est absent", async () => {
+    const mockEmit = mock(() => {});
+    const mockIo = { emit: mockEmit };
+    const mockSocket = { userId: null };
+
+    await handleUserConnected(mockSocket, mockIo);
+
+    expect(mockEmit).not.toHaveBeenCalled();
   });
 });
 
